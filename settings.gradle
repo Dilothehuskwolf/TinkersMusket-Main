@@ -1,1 +1,14 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { name = 'MinecraftForge'; url = 'https://maven.minecraftforge.net/' }
+        maven { name = 'ParchmentMC';    url = 'https://maven.parchmentmc.org' }
+    }
+}
 
+plugins {
+    // 這裡選最新版 0.7.0，如果跑有問題，再改成 0.6.0、0.5.0 試試
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+}
+
+rootProject.name = 'TinkersMusket'

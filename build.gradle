@@ -1,1 +1,124 @@
+// build.gradle
 
+// —— 用于加载 Parchment mappings 的插件依赖 ——
+buildscript {
+    repositories {
+        maven { url = 'https://maven.parchmentmc.org' }
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.parchmentmc:librarian:1.+'
+    }
+}
+
+// —— ForgeGradle + 发布支持 ——
+plugins {
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'maven-publish'
+}
+
+// 把 Parchment 的 librarian 插件应用到 ForgeGradle
+apply plugin: 'org.parchmentmc.librarian.forgegradle'
+
+// —— 基本项目信息，从 gradle.properties 里读取 ——
+group = mod_group_id      // com.dilothehuskwolf
+version = mod_version     // 1.0.0
+archivesBaseName = mod_id // tinkersmusket
+
+// —— 确保使用 JDK17 ——
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+minecraft {
+    // 映射使用 Parchment
+    mappings channel: mapping_channel, version: mapping_version
+
+    // 运行时配置
+    runs {
+        client {
+            workingDirectory project.file('run')
+            mods {
+                "${mod_id}" { source sourceSets.main }
+            }
+        }
+        server {
+            workingDirectory project.file('run')
+            mods {
+                "${mod_id}" { source sourceSets.main }
+            }
+            args '--nogui'
+        }
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all',
+                    '--output', file('src/generated/resources/'),
+                    '--existing', file('src/main/resources/')
+            mods {
+                "${mod_id}" { source sourceSets.main }
+            }
+        }
+    }
+}
+
+// 加入 data-gen 输出到资源路径
+sourceSets.main.resources.srcDir 'src/generated/resources'
+
+// —— 根级仓库：包含 Forge、Parchment、DVS1（Tinkers）、MavenCentral ——
+repositories {
+    mavenLocal()
+    maven { url = 'https://maven.minecraftforge.net/' }
+    maven { url = 'https://maven.parchmentmc.org' }
+    maven {
+        name = 'DVS1 Maven FS'
+        url  = 'https://dvs1.progwml6.com/files/maven'
+    }
+    mavenCentral()
+}
+
+dependencies {
+    // Minecraft & Forge
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    // Tinkers 依赖
+    implementation fg.deobf("slimeknights.mantle:Mantle:${minecraft_version}-${mantle_version}")
+    implementation fg.deobf("slimeknights.tconstruct:TConstruct:${minecraft_version}-${tconstruct_version}")
+}
+
+// 处理 mods.toml 占位符替换
+def modProps = [
+            mod_id                  : mod_id,               // 来自 gradle.properties 的 mod_id
+            mod_name                : mod_name,             // 来自 gradle.properties 的 mod_name
+            mod_version             : mod_version,          // 来自 gradle.properties 的 mod_version
+            mod_description         : mod_description,      // 来自 gradle.properties 的 mod_description
+            mod_authors             : mod_authors,          // 来自 gradle.properties 的 mod_authors
+            loader_version_range    : loader_version_range, // 来自 gradle.properties 的 loader_version_range
+            mod_license             : mod_license           // 来自 gradle.properties 的 mod_license
+        ]
+tasks.named('processResources', ProcessResources) {
+    inputs.properties(modProps)
+    filesMatching('META-INF/mods.toml') {
+        expand(modProps)
+    }
+}
+
+// 保证源码编译使用 UTF-8
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// 可选：发布到本地 Maven 仓库的配置
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact tasks.jar
+        }
+    }
+    repositories {
+        maven {
+            url = uri("$buildDir/mcmodsrepo")
+        }
+    }
+}
