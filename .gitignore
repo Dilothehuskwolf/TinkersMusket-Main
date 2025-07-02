@@ -1,1 +1,14 @@
+# Java / Gradle
+/.gradle/
+/build/
+/run/
+/out/
+/*.log
 
+# IDEA
+/.idea/
+/*.iml
+
+# OS
+.DS_Store
+Thumbs.db
